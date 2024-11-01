@@ -13,36 +13,44 @@
  * 4. Stateful Execution: Supports stateful execution, so you can maintain state across batch transactions by implementing the `Database.Stateful` interface.
  * 5. Built-in Retry Mechanism: If a batch fails, Salesforce provides built-in mechanisms to retry the batch.
  * 6. Asynchronous Processing: Operations are executed asynchronously, ensuring that the user is not blocked while the batch is processing.
- * 
+ * s
  * For a more detailed understanding and best practices, refer to the official Salesforce documentation: https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_batch.htm
  * 
  * Note: This class contains placeholders and commented sections that need to be updated with actual logic for querying and updating records.
  */
-public with sharing class NextStepBatch implements Database.Batchable<sObject>{
+public with sharing class NextStepBatch implements Database.Batchable<SObject>{
 
     public Database.QueryLocator start(Database.BatchableContext bc){
         // Query for all accounts and return the query locator.
-        return null; // Update null with the query locator
+        return Database.getQueryLocator('SELECT Id FROM Account'); 
     }
     
     public void execute(Database.BatchableContext bc, List<Account> scope){
         final String BATCH_NEXT_STEP = 'Batching the next meetings together.';
 
         // Update the Next Step field on each record in the batch scope.
-
         // Loop through the scope account records
-
-            // Set the Next Step field to 'Batching the next meetings together.'
+        // Set the Next Step field to 'Batching the next meetings together.'
+        for(Account a : scope){
+            a.Next_Step__c = BATCH_NEXT_STEP;
+        }
 
         // Update the account records in this batch scope
-        
+        UPDATE scope;
+
         // Query for all opportunities related to the accounts in this batch scope
-
+        List<Opportunity> oppList = [SELECT Id FROM Opportunity WHERE AccountId IN :scope];
+        
         // Loop through the opportunity records
-
-            // Set the Next Step field to 'Batching the next meetings together.'
+        // Set the Next Step field to 'Batching the next meetings together.'
+        for(Opportunity opp : oppList){
+            opp.NextStep = BATCH_NEXT_STEP;
+        }
 
         // Update the opportunity records
+        UPDATE oppList;
+            
+
 
     }
     
@@ -50,8 +58,12 @@ public with sharing class NextStepBatch implements Database.Batchable<sObject>{
         final List<User> USERS = [SELECT Id, Name, Email FROM User WHERE IsActive = true AND (NOT Email LIKE 'autoproc%')]; // DO NOT CHANGE
 
         // Get the email addresses of all active users
-
-            // Pass the set of active user emails to the sendEmailToActiveUsers method
+        set<String> emailAddresses = new set<String>();
+        // Pass the set of active user emails to the sendEmailToActiveUsers method
+        for(User user : USERS){
+            emailAddresses.add(user.Email);
+        }
+        sendEmailToActiveUsers(emailAddresses);
     }
 
     // Helper method to send an email to all emails in the set
